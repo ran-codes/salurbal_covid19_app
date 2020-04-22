@@ -1,1 +1,0 @@
-# SALURBAL-Covid19-App
