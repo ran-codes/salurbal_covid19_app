@@ -1,6 +1,7 @@
 string_packages_uhc = function(){(.packages()) %>% paste0("'",.,"'")%>% paste0(collapse = ",")}
 
 plot_cumulative_count_onset = function(df_tmp){
+  title_tmp = df_tmp$title %>% unique()
 df_tmp %>% 
   ggplot(aes(x=days.since.100, y=confirmed)) +
   geom_line(data=template_count, aes(x=days.since.100, y=y), lty=2, color="black")+
@@ -18,7 +19,7 @@ df_tmp %>%
   scale_x_continuous(breaks=seq(0, as.numeric(max(pull(df_tmp,days.since.100))), by=5), limits=c(0, as.numeric(max(pull(df_tmp,days.since.100)))+5))+
   scale_y_log10(limits=c(100, 10^nchar(trunc(max(pull(df_tmp,confirmed))))))+
   annotation_logticks(sides="l") +
-  labs(title="Confirmed Cases in the LAC Region (countries with >=100 cases)",
+  labs(title=title_tmp,
        x="Days from epidemic onset (>=100 cases)", y="Confirmed Cases")+
   theme_bw() +
   theme(panel.grid.minor.x = element_line(),
@@ -29,6 +30,7 @@ df_tmp %>%
 #
 #
 plot_cumulative_death_onset = function(df_tmp){
+  title_tmp = df_tmp$title %>% unique()
   df_tmp %>%
     ggplot(aes(x=days.since.10, y=deaths)) +
     geom_line(data=template_death, aes(x=days.since.10, y=y), lty=2, color="black")+
@@ -45,7 +47,7 @@ plot_cumulative_death_onset = function(df_tmp){
     scale_x_continuous(breaks=seq(0, as.numeric(max(pull(df_tmp,days.since.10))), by=5), limits=c(0, as.numeric(max(pull(df_tmp,days.since.10)))+5))+
     scale_y_log10(limits=c(10, 10^nchar(trunc(max(pull(df_tmp,deaths))))))+
     annotation_logticks(sides="l") +
-    labs(title="Deaths in the LAC Region (countries with >=10 Deaths)",
+    labs(title=title_tmp,
          x="Days from epidemic onset (>=10 Deaths)", y="Deaths")+
     theme_bw() +
     theme(panel.grid.minor.x = element_line(),
@@ -53,6 +55,7 @@ plot_cumulative_death_onset = function(df_tmp){
 }
 
 plot_cumulative_counts_date = function(df_tmp){
+  title_tmp = paste("Confirmed Cases",unique(df_tmp$title))
   df_tmp %>%
     ggplot(aes(x=date, y=confirmed)) +
     geom_line(aes(group=loc, col = loc, size = loc))+
@@ -68,7 +71,7 @@ plot_cumulative_counts_date = function(df_tmp){
     scale_x_date(limits=c(filter(df_tmp,confirmed> 1) %>% pull(date) %>% min(), max(df_tmp$date)+10))+
     scale_y_log10(limits=c(1, 10^nchar(trunc(max(pull(df_tmp,confirmed))))  )  )+
     annotation_logticks(sides="l") +
-    labs(title="Confirmed Cases in the LAC Region",
+    labs(title=title_tmp,
          x="Date")+
     guides(color=F)+
     theme_bw() +
@@ -78,6 +81,7 @@ plot_cumulative_counts_date = function(df_tmp){
 
 
 plot_cumulative_death_date = function(df_tmp){
+  title_tmp = paste("Deaths",unique(df_tmp$title))
   df_tmp  %>%
     ggplot(aes(x=date, y=deaths)) +
     geom_line(aes(group=loc, col = loc, size = loc))+
@@ -94,7 +98,7 @@ plot_cumulative_death_date = function(df_tmp){
     scale_x_date(limits=c( filter(df_tmp,deaths> 1) %>% pull(date) %>% min(), max(full$date)+5))+
     scale_y_log10(limits=c(1, 10^nchar(trunc(max(pull(df_tmp,deaths))))))+
     annotation_logticks(sides="l") +
-    labs(title="Confirmed Deaths in the LAC Region",
+    labs(title=title_tmp,
          x="Date")+
     guides(color=F)+
     theme_bw() +
@@ -102,17 +106,8 @@ plot_cumulative_death_date = function(df_tmp){
 }
 # plot_lockdown_effect(tidy.full.rolling.country,"Brazil","Yes")
 # df_tmp =tidy.full.rolling.country;loc_tmp="Argentina"; smooth_tmp ="yes"
-plot_lockdown_effect = function(df_tmp,loc_tmp, smooth_tmp ){
-  x = tibble()
-  if (smooth_tmp == "no"){
-    x = df_tmp %>% 
-      filter(loc == loc_tmp)%>% 
-      select(-rollsum) %>% 
-      rename(rollsum = daily_counts)
-  }
-  
-  else {x= df_tmp %>% filter(loc == loc_tmp)}
-  
+plot_lockdown_effect = function(df_tmp,loc_tmp ){
+  x= df_tmp %>% filter(loc == loc_tmp)
   cols = col_rolling
   start_tmp = x$start %>% unique()
   factorpeak=(x %>% filter(type=="confirmed") %>% pull(rollsum) %>% max)/
@@ -208,15 +203,8 @@ plot_lockdown_effect_state = function(df_tmp, loc_tmp, state_tmp, smooth_tmp  ){
 }
 # plot_lockdown_effect_state(tidy.full.rolling.state,"Brazil","Sao Paulo","yes")
 # df_tmp =tidy.full.rolling.state;loc_tmp="Brazil";state_tmp = "Sao Paulo"; smooth_tmp ="yes"
-plot_lockdown_effect_salurbal = function(df_tmp, smooth_tmp  ){
-  x = tibble()
-  if (smooth_tmp == "no"){
-    x = df_tmp %>% 
-      select(-rollsum) %>% 
-      rename(rollsum = daily_counts)
-  }
-  else {x= df_tmp }
-  
+plot_lockdown_effect_salurbal = function(df_tmp ){
+  x= df_tmp 
   state_tmp = unique(df_tmp$loc)
   cols = col_rolling
   factorpeak=(x %>% filter(type=="confirmed") %>% pull(rollsum) %>% max)/
@@ -246,10 +234,32 @@ plot_lockdown_effect_salurbal = function(df_tmp, smooth_tmp  ){
           axis.ticks.y.left=element_line(color=cols[[1]]),
           axis.title.y.left =element_text(color=cols[[1]]))
 }
+# df_tmp = tidy.daily.subnational %>% filter(country == "Mexico") %>% filter(level == "L1") %>% filter(loc == "Cancun") 
+plot_lockdown_effect_salurbal_confirmed = function(df_tmp){
+  x= df_tmp
+  state_tmp = unique(df_tmp$loc)
+  cols = col_rolling[1]
+  x  %>%
+    ggplot(aes(x=date, y=rollsum)) +
+    geom_line(aes(color=type)) +
+    scale_color_manual(values=cols)+
+    scale_x_date(breaks="2 days")+
+    guides(color=F)+
+    labs(y="New cases per day (5 day avg)",
+         x="",
+         title=state_tmp)+
+    theme_bw() +
+    theme(plot.title = element_text(size=22),
+          axis.text.x=element_text(color="black", angle=90, hjust=1, vjust=.5),
+          axis.line.y.left = element_line(color = cols[[1]]),
+          axis.text.y.left=element_text(color=cols[[1]]),
+          axis.ticks.y.left=element_line(color=cols[[1]]),
+          axis.title.y.left =element_text(color=cols[[1]]))
+}
 #### 2. Base Map  ######
-
-basemap = leaflet(options = leafletOptions(preferCanvas = TRUE)) %>% addTiles() %>% 
+basemap  = leaflet(options = leafletOptions(preferCanvas = TRUE)) %>% addTiles() %>% 
   addProviderTiles(providers$CartoDB.Positron,
                    options = providerTileOptions(updateWhenZooming = FALSE,updateWhenIdle = TRUE )) %>%
-  setView(lng = -20.11915, lat = 8.517508,zoom = 3)  
+  setView(lng = -60.11915, lat = -10.517508,zoom = 3.25)  
+
 
